@@ -1,4 +1,5 @@
-pub fn part_one(input: &str) -> Option<u32> {
+/// Returns an iterator that iterates over the sum of all calories per elf.
+fn parse_calories(input: &str) -> impl Iterator<Item = u32> + '_ {
     // I really wanted a declarative solution here.
     // The 'filter' at the end is not really necessary, but without it the resulting iterator will contain a bunch of ugly 0 values.
     input
@@ -15,11 +16,17 @@ pub fn part_one(input: &str) -> Option<u32> {
             }
         })
         .filter(|calories| *calories != 0)
-        .max()
+}
+
+pub fn part_one(input: &str) -> Option<u32> {
+    parse_calories(input).max()
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let mut calories: Vec<u32> = parse_calories(input).collect();
+    calories.sort_by(|a, b| b.cmp(a)); // sort in reverse order (from max -> min)
+    let max_sum: u32 = calories.iter().take(3).sum();
+    Some(max_sum)
 }
 
 fn main() {
