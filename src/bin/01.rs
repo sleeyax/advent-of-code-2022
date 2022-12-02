@@ -51,3 +51,5 @@ mod tests {
         assert_eq!(part_two(&input), Some(45000));
     }
 }
+
+// Other similar solution I like: https://github.com/fspoettel/advent-of-code-2022/blob/main/src/bin/01.rs
