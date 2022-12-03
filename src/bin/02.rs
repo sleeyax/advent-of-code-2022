@@ -53,6 +53,7 @@ impl From<&str> for Outcome {
 }
 
 fn play_game(opponent: Shape, player: Shape) -> Outcome {
+    // I should've used a modulus (%) here and below instead :S
     if opponent == player {
         Outcome::Draw
     } else if (player == Shape::Rock && opponent == Shape::Scissors) || (player == Shape::Scissors && opponent == Shape::Paper) || (player == Shape::Paper && opponent == Shape::Rock) {
