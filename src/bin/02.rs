@@ -5,10 +5,19 @@ enum Shape {
     Scissors,
 }
 
+#[derive(PartialEq)]
 enum Outcome {
     Lost = 0,
     Draw = 3,
     Won = 6,
+}
+
+#[derive(PartialEq)]
+enum Strategy {
+    /// Opponent based.
+    One,
+    /// Outcome based.
+    Two,
 }
 
 impl Shape {
@@ -32,6 +41,17 @@ impl From<&str> for Shape {
     }
 }
 
+impl From<&str> for Outcome {
+    fn from(letter: &str) -> Self {
+        match letter {
+            "X" => Outcome::Lost,
+            "Y" => Outcome::Draw,
+            "Z" => Outcome::Won,
+            _ => panic!("unknown letter {} specified!", letter)
+        }
+    }
+}
+
 fn play_game(opponent: Shape, player: Shape) -> Outcome {
     if opponent == player {
         Outcome::Draw
@@ -42,28 +62,54 @@ fn play_game(opponent: Shape, player: Shape) -> Outcome {
     }
 }
 
-fn play_round(opponent: Shape, me: Shape) -> u32 {
+fn predict_shape(opponent: Shape, outcome: Outcome) -> Shape {
+    if outcome == Outcome::Draw {
+        opponent
+    } else if outcome == Outcome::Lost {
+        match opponent {
+            Shape::Rock => Shape::Scissors,
+            Shape::Paper => Shape::Rock,
+            Shape::Scissors => Shape::Paper,
+        }
+    } else if outcome == Outcome::Won {
+        match opponent {
+            Shape::Rock => Shape::Paper,
+            Shape::Paper => Shape::Scissors,
+            Shape::Scissors => Shape::Rock,
+        }
+    } else {
+        panic!("unknown outcome specified!");
+    }
+}
+
+fn play_round(left: &str, right: &str, strategy: &Strategy) -> u32 {
     let mut my_score: u32 = 0;
+    let opponent = Shape::from(left);
+    let me = if *strategy == Strategy::One { Shape::from(right)} else {predict_shape(Shape::from(left), Outcome::from(right))};
     my_score += me.to_score();
     my_score += play_game(opponent, me) as u32;
     my_score
 }
 
-pub fn part_one(input: &str) -> Option<u32> {
+fn play(input: &str, strategy: Strategy) -> Option<u32> {
     let mut my_total_score = 0;
 
     for line in input.lines() {
         let split: Vec<&str> = line.split_whitespace().collect();
         let opponent = split.get(0).unwrap();
         let me = split.get(1).unwrap();
-        my_total_score += play_round(Shape::from(*opponent), Shape::from(*me));
+        my_total_score += play_round(*opponent, *me, &strategy);
     }
 
     Some(my_total_score)
 }
 
+pub fn part_one(input: &str) -> Option<u32> {
+    play(input, Strategy::One)
+}
+
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    play(input, Strategy::Two)
 }
 
 fn main() {
@@ -85,6 +131,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 2);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(12));
     }
 }
