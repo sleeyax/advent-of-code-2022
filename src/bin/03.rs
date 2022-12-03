@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use itertools::Itertools;
+
 fn to_priority(ch: char) -> u32 {
     let offset: u32 = if ch.is_uppercase() { 38 } else { 0 };
     let ord: u32 = ch.into();
@@ -50,7 +52,24 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let mut total: u32 = 0;
+    let group_size: u32 = 3;
+
+    for groups in &input.lines().chunks(group_size as usize) {
+        let mut letters: HashMap<char, u32> = HashMap::new();
+
+        for group in groups {
+            for ch in group.chars().sorted().dedup() {
+                letters.entry(ch).and_modify(|counter| *counter += 1).or_insert(1);
+                if letters[&ch] == group_size {
+                    let priority = to_priority(ch);
+                    total += priority;
+                }
+            }
+        }
+    }
+
+    Some(total)
 }
 
 fn main() {
@@ -72,6 +91,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 3);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(70));
     }
 }
