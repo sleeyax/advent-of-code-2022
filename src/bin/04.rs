@@ -10,6 +10,11 @@ fn is_overlapping(x: (u32, u32), y: (u32, u32)) -> bool {
 }
 
 fn is_contained(x: (u32, u32), y: (u32, u32)) -> bool {
+    // Another way I found I can solve this is via a variable flip:
+    // if y.1 >= x.1 && y.0 <= x.0 {
+    //     (y, x) = (x, y);
+    // }
+    // y.0 >= x.0 && y.1 <= x.1
     (y.0 >= x.0 && y.1 <= x.1) || (x.0 >= y.0 && x.1 <= y.1)
 }
 
