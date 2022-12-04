@@ -24,8 +24,11 @@ fn solve(input: &str, part: u32) -> Option<u32> {
         input
             .lines()
             .filter(|line| {
-                let (left, right) = line.split_once(",").unwrap();
-                f(parse_group(left), parse_group(right))
+                let (left, right) = line
+                    .split_once(",")
+                    .map(|(left, right)| (parse_group(left), parse_group(right)))
+                    .unwrap();
+                f(left, right)
             })
             .count() as u32,
     )
