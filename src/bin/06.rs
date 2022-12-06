@@ -1,5 +1,7 @@
 use itertools::Itertools;
 
+// another cool and different solution I like: https://github.com/holly-hacker/AdventOfCode2022/blob/main/src/day06/mod.rs#L26
+
 fn find_marker(line: &str, marker_length: usize) -> Option<u32> {
     for (i, _)  in line.chars().enumerate() {
         let n = i+1;
