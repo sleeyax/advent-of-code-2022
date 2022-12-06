@@ -3,7 +3,7 @@ use itertools::Itertools;
 fn find_marker(line: &str, marker_length: usize) -> Option<u32> {
     for (i, _)  in line.chars().enumerate() {
         let n = i+1;
-        let marker = line.chars().skip(n).take(marker_length);
+        let marker = line.chars().skip(n).take(marker_length); // this probably isn't the most efficient
         if marker.sorted().dedup().count() == marker_length {
             return Some((n + marker_length) as u32);
         }
