@@ -64,13 +64,13 @@ impl From<&Direction> for Point {
     }
 }
 
-pub fn part_one(input: &str) -> Option<u32> {
+fn solve(input: &str, length: usize) -> u32 {
     // we start our knotting yourney at the bottom left of our 2D grid (x=0, y=0).
     let start_point = Point::new(0, 0);
 
-    // we also have 2 knots as part of the rope (1 head + 1 tail)
+    // we also have `length` knots as part of the rope (first part: 1 head + 1 tail)
     // we store their curent positions in this array.
-    let mut knots = vec![start_point; 2];
+    let mut knots = vec![start_point; length];
 
     // an array containing all `Point`s the tail has been.
     // we specifically use a hashset so no duplicates are inserted.
@@ -97,7 +97,7 @@ pub fn part_one(input: &str) -> Option<u32> {
                     continue;
                 }
 
-                // update the current knot's position
+                // update current knot's position
                 knots[i] += diff.signum();
             }
 
@@ -105,11 +105,15 @@ pub fn part_one(input: &str) -> Option<u32> {
         }
     }
 
-    Some(tail_points.len() as u32)
+    tail_points.len() as u32
+}
+
+pub fn part_one(input: &str) -> Option<u32> {
+    Some(solve(input, 2))
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    Some(solve(input, 10))
 }
 
 fn main() {
@@ -131,6 +135,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 9);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(1));
     }
 }
