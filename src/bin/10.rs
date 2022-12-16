@@ -51,9 +51,11 @@ pub fn part_one(input: &str) -> Option<i32> {
 
     // What I had in mind initially was to parse each instruction at runtime an expand the amount of cycles in the loop as we continue to read the input line by line.
     // But Rust doesn't allow modifications to a range while looping over it!
-    // Therefore, I've implemented it so we count the number of cycles beforehand instead.
-    // This is not very performant and perhaps my initial idea is still possible some other way though, but I haven't discovered it yet...
+    // Thus this while loop instead.
+    // Alternatively we could create a fn to count the number of cycles beforehand, though this isn't really required (as of part 1).
+    // Perhaps my initial idea is still possible some other way though, but I haven't discovered that solution yet...
     loop {
+        // Parse next instruction.
         if let Some(op) = iter.next().map(Op::from) {
             let mut instruction = Instruction { op, cycle };
 
@@ -66,10 +68,21 @@ pub fn part_one(input: &str) -> Option<i32> {
             callstack.push_back(instruction);
         }
 
+        // We're done if there are no more instructions to execute.
         if callstack.len() == 0 {
             break;
         }
 
+        // Totals must be calculated at the START of this cycle.
+        if (cycle as i32 - 20) % 40 == 0 {
+            let signal_strength = x * cycle as i32;
+            total += signal_strength;
+            if cycle == 220 {
+                break;
+            }
+        }
+
+        // Execute instructions at the END of this cycle.
         for instruction in callstack.iter() {
             if !instruction.can_run(cycle) {
                 continue;
@@ -83,16 +96,8 @@ pub fn part_one(input: &str) -> Option<i32> {
             };
         }
 
+        // Clean the stack by removing executed instructions.
         callstack.retain(|instruction| !instruction.can_run(cycle));
-
-        if (cycle as i32 - 20) % 40 == 0 {
-            let signal_strength = x * cycle as i32;
-            total += signal_strength;
-            // TODO: find out why the 220th cycle has an invalid value for x
-            if cycle == 220 {
-                break;
-            }
-        }
 
         cycle += 1;
     }
