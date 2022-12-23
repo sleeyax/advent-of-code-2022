@@ -42,12 +42,13 @@ impl Instruction {
     }
 }
 
-pub fn part_one(input: &str) -> Option<i32> {
+fn solve(input: &str) -> i32 {
     let mut iter = input.lines();
     let mut x: i32 = 1;
     let mut cycle = 0;
     let mut total = 0;
     let mut callstack: VecDeque<Instruction> = VecDeque::new();
+    let mut pixels: Vec<&str> = Vec::new();
 
     // What I had in mind initially was to parse each instruction at runtime an expand the amount of cycles in the loop as we continue to read the input line by line.
     // But Rust doesn't allow modifications to a range while looping over it!
@@ -77,9 +78,6 @@ pub fn part_one(input: &str) -> Option<i32> {
         if (cycle as i32 - 20) % 40 == 0 {
             let signal_strength = x * cycle as i32;
             total += signal_strength;
-            if cycle == 220 {
-                break;
-            }
         }
 
         // Execute instructions at the END of this cycle.
@@ -96,17 +94,33 @@ pub fn part_one(input: &str) -> Option<i32> {
             };
         }
 
+        // The CRT draws a pixel during each cycle.
+        let pos = cycle as i32 % 40;
+        if pos - 1 == x || pos == x || pos + 1 == x {
+            pixels.push("#");
+        } else {
+            pixels.push(".");
+        }
+        if (cycle + 1) % 40 == 0 {
+            println!("{}", pixels.join(""));
+            pixels.clear();
+        }
+
         // Clean the stack by removing executed instructions.
         callstack.retain(|instruction| !instruction.can_run(cycle));
 
         cycle += 1;
     }
 
-    Some(total)
+    total
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
-    None
+pub fn part_one(input: &str) -> Option<i32> {
+   Some(solve(input))
+}
+
+pub fn part_two(input: &str) -> Option<i32> {
+    Some(solve(input))
 }
 
 fn main() {
@@ -128,6 +142,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 10);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(13140));
     }
 }
