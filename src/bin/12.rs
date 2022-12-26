@@ -1,9 +1,9 @@
-// I really dislike implementing existing pathfinfing algos from scratch (what's fun about reinventing the wheel??)
+// I really dislike implementing existing pathfinding algos from scratch (what's fun about reinventing the wheel??)
 // so I heavily based this code on https://github.com/ericwburden/advent_of_code_2022/blob/main/src/day12/input.rs
 // which implements Dijkstra's algorithm (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Algorithm).
 // I'm hoping day 13 will be more fun...
 
-use std::{collections::{HashMap, BinaryHeap}, cmp::Reverse};
+use std::{collections::{HashMap, BinaryHeap}, cmp::{Reverse, min}};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Mountain {
@@ -167,13 +167,110 @@ impl MountainMap {
     }
 }
 
+struct DescentMap {
+    mountains: Vec<Vec<Mountain>>,
+    graph: HashMap<(usize, usize), Neighbors>,
+    summit: (usize, usize),
+}
+
+impl From<&MountainMap> for DescentMap {
+    fn from(map: &MountainMap) -> Self {
+        let mut graph: HashMap<(usize, usize), Neighbors> = HashMap::new();
+
+        for (pos, neighbors) in map.graph.iter() {
+            // For each neighbor in the entry's list of neighbors (skipping the empty
+            // spaces in the neighbor array)
+            for neighbor in neighbors.iter().flatten() {
+                // We're checking the entry in our inverted `graph` where the
+                // neighbor is the key, creating an entry with an empty set of
+                // neighbors if the neighbor doesn't have an entry yet. Then, for each
+                // slot in the value array for `neighbor`, find the first index that
+                // doesn't have a value yet and put `pos` there. This 'inverts' the
+                // relationships by making `neighbor` the key and adding `pos` as one
+                // of the positions from which `neighbor` can be reached.
+                graph
+                    .entry(*neighbor)
+                    .or_default()
+                    .iter_mut()
+                    .filter(|slot| slot.is_none())
+                    .take(1)
+                    .for_each(|slot| *slot = Some(*pos));
+            }
+        }
+
+        let mountains = map.mountains.to_vec();
+        let summit = map.end_at;
+
+        // Return the new `DescentMap` with the inverted graph.
+        DescentMap {
+            mountains,
+            graph,
+            summit,
+        }
+    }
+}
+
+impl DescentMap {
+    /// Identify and return the minimum number of steps every other mountain is from
+    /// the summit as a HashMap where the keys are mountain positions and the values
+    /// are the number of steps from the summit.
+    pub fn shortest_paths_from_summit(&self) -> HashMap<(usize, usize), u32> {
+        // The procedure here is the same Dijkstra's algorithm from part one, just
+        // walking down from the summit instead of up from the start space.
+        let start_at = self.summit;
+        let mut open = BinaryHeap::from([(Reverse(0), start_at)]);
+        let mut steps = HashMap::from([(start_at, 0)]);
+
+        // While there are still mountains to explore...
+        while let Some((_, pos)) = open.pop() {
+            // No need for an early return here, we want to find a path to _all_ the
+            // other mountains.
+
+            // As before, we check all the neighbors and any time we're able to
+            // reach that neighbor by the shortest path found so far, we add that
+            // neighbor to the open set.
+            let neighbors = match self.graph.get(&pos) {
+                Some(neighbors) => neighbors,
+                _ => { continue; }
+            };
+            for maybe_neighbor in neighbors {
+                let neighbor = match maybe_neighbor {
+                    Some(neighbor) => neighbor,
+                    _ => { continue; }
+                };
+                let next_steps: u32 = steps.get(&pos).unwrap() + 1;
+                let curr_steps: u32 = *steps.get(neighbor).unwrap_or(&u32::MAX);
+                if next_steps >= curr_steps {
+                    continue;
+                }
+                open.push((Reverse(next_steps), *neighbor));
+                steps.insert(*neighbor, next_steps);
+            }
+        }
+
+        // Returns a mapping of the fewest steps to every mountain from the summit
+        steps
+    }
+}
+
 pub fn part_one(input: &str) -> Option<u32> {
     let map = &MountainMap::from(input);
     map.shortest_path_to_summit(map.start_at).unwrap().into()
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let descent_map = DescentMap::from(&MountainMap::from(input));
+
+    let steps_to_short_mountains = descent_map.shortest_paths_from_summit();
+
+    let mut shortest_path = u32::MAX;
+    for (pos, steps_to_pos) in steps_to_short_mountains.iter() {
+        let (row, col) = *pos;
+        if descent_map.mountains[row][col]._type == MountainType::Mountain && descent_map.mountains[row][col].height == 0 {} else {continue;}
+        shortest_path = min(shortest_path, *steps_to_pos);
+    }
+
+    shortest_path.into()
 }
 
 fn main() {
@@ -195,6 +292,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 12);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(29));
     }
 }
