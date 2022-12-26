@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use itertools::Itertools;
 
 #[derive(Debug, Clone)]
@@ -11,7 +12,7 @@ struct Test {
 struct Monkey {
     nr: usize,
     inspections: usize,
-    items: Vec<u64>,
+    items: VecDeque<u64>,
     operation: String,
     test: Test,
 }
@@ -62,7 +63,7 @@ impl From<&str> for Monkey {
         Monkey {
             nr,
             inspections: 0,
-            items: starting_items,
+            items: VecDeque::from(starting_items),
             operation,
             test: Test {
                 divisible_by: test_divisible_by,
@@ -97,7 +98,7 @@ impl Monkey {
 }
 
 fn execute_operation(operation: &str) -> u64 {
-    let mut chars = operation.split(" ");
+    let mut chars = operation.split_whitespace();
 
     let left = chars.next().unwrap().parse::<u64>().unwrap();
     let operator = chars.next().unwrap();
@@ -119,23 +120,15 @@ fn parse_monkeys(input: &str) -> Vec<Monkey> {
 
 fn play_round(monkeys: &mut Vec<Monkey>, division: &DivisionStrategy) {
     for i in 0..monkeys.len() {
-        let monkey = monkeys[i].clone();
-
-        for item in &monkey.items {
-            let (next_monkey, worry_level) = monkey.inspect_item(item, division);
+        while let Some(item) = monkeys[i].items.pop_front() {
+            let (next_monkey, worry_level) = monkeys[i].inspect_item(&item, division);
 
             // throw item with new worry level to next monkey
-            let m = &mut monkeys[next_monkey];
-            m.items.push(worry_level);
+            monkeys[next_monkey].items.push_back(worry_level);
 
             // increase amount of inspections
-            let m = &mut monkeys[i];
-            m.inspections += 1;
+            monkeys[i].inspections += 1;
         }
-
-        // drop items with old worry level (remove them from our items list)
-        let m = &mut monkeys[i];
-        m.items.clear();
     }
 }
 
