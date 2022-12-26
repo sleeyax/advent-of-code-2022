@@ -1,20 +1,24 @@
-use evalexpr::eval;
 use itertools::Itertools;
 
 #[derive(Debug, Clone)]
 struct Test {
-    divisible_by: isize,
+    divisible_by: u64,
     if_true: usize,
     if_false: usize,
 }
 
 #[derive(Debug, Clone)]
 struct Monkey {
-    nr: isize,
+    nr: usize,
     inspections: usize,
-    items: Vec<isize>,
+    items: Vec<u64>,
     operation: String,
     test: Test,
+}
+
+enum DivisionStrategy {
+    DivideByThree,
+    Magic(u64),
 }
 
 impl From<&str> for Monkey {
@@ -26,21 +30,21 @@ impl From<&str> for Monkey {
             .unwrap()
             .replace("Monkey ", "")
             .replace(":", "")
-            .parse::<isize>()
+            .parse::<usize>()
             .unwrap();
         let starting_items = iter
             .next()
             .unwrap()
             .replace("Starting items: ", "")
             .split(",")
-            .map(|v| v.trim().parse::<isize>().unwrap())
+            .map(|v| v.trim().parse::<u64>().unwrap())
             .collect_vec();
         let operation = iter.next().unwrap().replace("Operation: new = ", "");
         let test_divisible_by = iter
             .next()
             .unwrap()
             .replace("Test: divisible by ", "")
-            .parse::<isize>()
+            .parse::<u64>()
             .unwrap();
         let test_if_true = iter
             .next()
@@ -72,18 +76,37 @@ impl From<&str> for Monkey {
 impl Monkey {
     /// Inspect a single item with a specific worry level.
     /// Returns the number of the next Monkey this item should be thrown to and the new worry level.
-    fn inspect_item(&self, item: &isize) -> (usize, isize) {
-        let worry_level = item;
-        let worry_level = eval(&self.operation.replace("old", &worry_level.to_string()))
-            .unwrap()
-            .as_int()
-            .unwrap();
-        let worry_level = ((worry_level / 3) as f64).round() as isize;
+    fn inspect_item(&self, item: &u64, division: &DivisionStrategy) -> (usize, u64) {
+        let mut worry_level = execute_operation(&self.operation.replace("old", &item.to_string()));
+
+        match division {
+            DivisionStrategy::DivideByThree => {
+                worry_level = ((worry_level / 3) as f64).round() as u64;
+            },
+            DivisionStrategy::Magic(nr) => {
+                worry_level %= nr;
+            },
+        }
+
         if worry_level % self.test.divisible_by == 0 {
             (self.test.if_true, worry_level)
         } else {
             (self.test.if_false, worry_level)
         }
+    }
+}
+
+fn execute_operation(operation: &str) -> u64 {
+    let mut chars = operation.split(" ");
+
+    let left = chars.next().unwrap().parse::<u64>().unwrap();
+    let operator = chars.next().unwrap();
+    let right = chars.next().unwrap().parse::<u64>().unwrap();
+
+    match operator {
+        "+" => left + right,
+        "*" => left * right,
+        _ => panic!("unsupported operator {}", operator)
     }
 }
 
@@ -94,12 +117,12 @@ fn parse_monkeys(input: &str) -> Vec<Monkey> {
         .collect_vec()
 }
 
-fn play_round(monkeys: &mut Vec<Monkey>) {
+fn play_round(monkeys: &mut Vec<Monkey>, division: &DivisionStrategy) {
     for i in 0..monkeys.len() {
         let monkey = monkeys[i].clone();
 
         for item in &monkey.items {
-            let (next_monkey, worry_level) = monkey.inspect_item(item);
+            let (next_monkey, worry_level) = monkey.inspect_item(item, division);
 
             // throw item with new worry level to next monkey
             let m = &mut monkeys[next_monkey];
@@ -116,32 +139,40 @@ fn play_round(monkeys: &mut Vec<Monkey>) {
     }
 }
 
-fn play_rounds(monkeys: &mut Vec<Monkey>, count: usize) {
+fn play_rounds(monkeys: &mut Vec<Monkey>, count: usize, division: DivisionStrategy) {
     for _ in 0..count {
-        play_round(monkeys);
+        play_round(monkeys, &division);
     }
+}
+
+fn find_most_active(mut monkeys: Vec<Monkey>) -> usize {
+     // sort in descending order
+     monkeys.sort_by(|m1, m2| m2.inspections.cmp(&m1.inspections));
+     // return product of 2 most active monkeys
+     monkeys[0].inspections * monkeys[1].inspections
 }
 
 pub fn part_one(input: &str) -> Option<usize> {
     let mut monkeys = parse_monkeys(input);
 
-    play_rounds(&mut monkeys, 20);
+    play_rounds(&mut monkeys, 20, DivisionStrategy::DivideByThree);
 
-    // println!("{:?}", &monkeys);
-
-    // sort in descending order
-    monkeys.sort_by(|m1, m2| m2.inspections.cmp(&m1.inspections));
-
-    if let (Some(m1), Some(m2)) = (monkeys.get(0), monkeys.get(1)) {
-        let monkey_business = m1.inspections * m2.inspections;
-        Some(monkey_business)
-    } else {
-        panic!("expected at least 2 monkeys!");
-    }
+    Some(find_most_active(monkeys))
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<usize> {
+    let mut monkeys = parse_monkeys(input);
+
+    // In order to solve part 2, we have to 'find another way to keep your worry levels manageable'.
+    // At first I tried to use BigInts (using the bigint-num crate), but that didn't work because the numbers would grow so big it would massively slow down the program at around 500 rounds.
+    // I had to look this part up because the correct solution seems to be general knowledge to those who've encountered a similar problem before. And I'm also not a mathematician.
+    // TL;DR: The idea here is that all the monkeys are doing modulo with the product of all divisors (which happen to be prime numbers) against you worry level.
+    // More info here: https://fasterthanli.me/series/advent-of-code-2022/part-11#math-check
+    let magic_nr = monkeys.iter().map(|x| x.test.divisible_by).product::<u64>();
+
+    play_rounds(&mut monkeys, 10000, DivisionStrategy::Magic(magic_nr));
+
+    Some(find_most_active(monkeys))
 }
 
 fn main() {
@@ -163,6 +194,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 11);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(2713310158));
     }
 }

@@ -7,7 +7,6 @@ name = "advent_of_code"
 version = "0.8.0"
 dependencies = [
  "derive_more",
- "evalexpr",
  "itertools",
  "pico-args",
 ]
@@ -36,12 +35,6 @@ name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
-
-[[package]]
-name = "evalexpr"
-version = "8.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aacfb566035f8cd02f6ec9247c242f3f9904a0b288ea383abcf4e95df6436a34"
 
 [[package]]
 name = "itertools"
