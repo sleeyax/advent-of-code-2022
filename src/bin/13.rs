@@ -1,3 +1,7 @@
+// I'm stuck because my code does exactly what the challenge description says and the example works, but my final answer is apparantly wrong ¯\_(ツ)_/¯
+// I don't have much free time left to figure this out, so I'm leaving it as is for now.
+// A nice solution which solves this problem in an idiomatic way is: https://www.ericburden.work/blog/2022/12/13/advent-of-code-2022-day-13/
+
 #[derive(Debug, PartialEq, Clone)]
 enum Value {
     Integer(u32),
