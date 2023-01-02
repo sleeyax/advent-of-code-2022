@@ -1,7 +1,18 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Value {
     Integer(u32),
     Array(Vec<Value>),
+}
+
+impl Value {
+    /// Unpacks the enum value to type `Vec<Value>`.
+    /// If the `Value` is an integer it will be converted.
+    fn unpack_array(&self) -> Vec<Value> {
+        match self {
+            Value::Integer(v) => vec![Value::Integer(*v)],
+            Value::Array(v) => v.to_vec(),
+        }
+    }
 }
 
 /// Finds an array string within a longer nested array string notation.
@@ -62,8 +73,60 @@ fn parse(input: &str) -> Vec<Value> {
     result
 }
 
+/// Compare two pairs and return whether they are in the right order.
+fn compare(left: Vec<Value>, right: Vec<Value>) -> bool {
+    let mut right_iter = right.iter();
+
+    for l in left.iter() {
+        if let Some(r) = right_iter.next() {
+            match (l, r){
+                (Value::Integer(l), Value::Integer(r)) => {
+                    if r < l {
+                        return false;
+                    }
+                },
+                (Value::Array(l), Value::Array(r)) => {
+                    if !compare(l.to_vec(), r.to_vec()) {
+                        return false;
+                    }
+                },
+                (l, r) => {
+                    let left = l.unpack_array();
+                    let right = r.unpack_array();
+
+                    // Last conditional is required to check whether the R array has run out.
+                    // If we did the conversion and the order is correct but the R array ran out, we shouldn't return false in this edge case.
+                    if !compare(left.clone(), right.clone()) && right.len() >= left.len() {
+                        return false;
+                    }
+                },
+            };
+        } else {
+            // right side ran out of items
+            return false;
+        }
+    }
+
+    // left side ran out of items
+    true
+}
+
 pub fn part_one(input: &str) -> Option<u32> {
-    None
+    let mut result: u32 = 0;
+
+    for (i, pair) in input.split("\n\n").into_iter().enumerate() {
+        let (left, right) = pair
+            .split_once("\n")
+            .map(|(left, right)| (parse(left.trim()), parse(right.trim())))
+            .unwrap();
+
+        if compare(left, right) {
+            // println!("{}",i + 1);
+            result += (i + 1) as u32;
+        }
+    }
+
+    Some(result)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
@@ -85,7 +148,7 @@ mod tests {
     #[test]
     fn test_part_one() {
         let input = advent_of_code::read_file("examples", 13);
-        assert_eq!(part_one(&input), None);
+        assert_eq!(part_one(&input), Some(13));
     }
 
     #[test]
