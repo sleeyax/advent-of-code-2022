@@ -74,7 +74,7 @@ fn parse(input: &str) -> Vec<Value> {
 }
 
 /// Compare two pairs and return whether they are in the right order.
-fn compare(left: &Vec<Value>, right: &Vec<Value>) -> bool {
+fn compare(left: &Vec<Value>, right: &Vec<Value>, check_if_right_ran_out: bool) -> bool {
     let mut right_iter = right.iter();
 
     for l in left.iter() {
@@ -86,24 +86,19 @@ fn compare(left: &Vec<Value>, right: &Vec<Value>) -> bool {
                     }
                 },
                 (Value::Array(l), Value::Array(r)) => {
-                    if !compare(l, r) {
+                    if !compare(l, r, true) {
                         return false;
                     }
                 },
                 (l, r) => {
-                    let left = l.unpack_array();
-                    let right = r.unpack_array();
-
-                    // Last conditional is required to check whether the R array has run out.
-                    // If we did the conversion and the order is correct but the R array ran out, we shouldn't return false in this edge case.
-                    if !compare(&left, &right) && right.len() >= left.len() {
+                    if !compare(&l.unpack_array(), &r.unpack_array(), false) {
                         return false;
                     }
                 },
             };
         } else {
             // right side ran out of items
-            return false;
+            return !check_if_right_ran_out;
         }
     }
 
@@ -120,7 +115,7 @@ pub fn part_one(input: &str) -> Option<u32> {
             .map(|(left, right)| (parse(left.trim()), parse(right.trim())))
             .unwrap();
 
-        if compare(&left, &right) {
+        if compare(&left, &right, true) {
             // println!("{}",i + 1);
             result += (i + 1) as u32;
         }
